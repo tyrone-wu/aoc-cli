@@ -84,8 +84,8 @@ pub enum AocError {
     #[error("{0} is not a valid Advent of Code day")]
     InvalidPuzzleDay(PuzzleDay),
 
-    #[error("Puzzle {0} of {1} is still locked")]
-    LockedPuzzle(PuzzleDay, PuzzleYear),
+    #[error("Puzzle {0} part {1} of {2} is still locked")]
+    LockedPuzzle(PuzzleDay, PuzzlePart, PuzzleYear),
 
     #[error("Session cookie file not found in home or config directory")]
     SessionFileNotFound,
@@ -167,7 +167,7 @@ impl AocClient {
         if self.day_unlocked() {
             Ok(())
         } else {
-            Err(AocError::LockedPuzzle(self.day, self.year))
+            Err(AocError::LockedPuzzle(self.day, PuzzlePart::PartOne, self.year))
         }
     }
 
@@ -296,9 +296,31 @@ impl AocClient {
         Ok(())
     }
 
-    pub fn show_puzzle(&self) -> AocResult<()> {
+    pub fn show_puzzle(&self, part: Option<&str>) -> AocResult<()> {
         let puzzle_html = self.get_puzzle_html()?;
-        println!("\n{}", self.html2text(&puzzle_html));
+
+        // Grabs the header of the format: `--- Day Foo: Bar ---`
+        let header_end = puzzle_html
+            .match_indices("---")
+            .nth(1)
+            .map(|(start, _)| start + 3)
+            .unwrap();
+        // Grabs content range of our puzzle of interest.
+        let body_range = match (part, puzzle_html.find("--- Part Two ---")) {
+            (Some("1"), Some(p2_start)) => header_end..p2_start,
+            (Some("1"), None) | (None, _) => header_end..puzzle_html.len(),
+            (Some("2"), Some(p2_start)) => p2_start..puzzle_html.len(),
+            (Some("2"), None) => return Err(AocError::LockedPuzzle(self.day, PuzzlePart::PartTwo, self.year)),
+            _ => return Err(AocError::InvalidPuzzlePart),
+        };
+        let mut display = puzzle_html[..header_end].to_owned() + "<br>";
+        if matches!(part, Some("1") | None) {
+            // Insert `Part One` banner along with header.
+            display.push_str("--- Part One ---");
+        }
+        display.push_str(&puzzle_html[body_range]);
+
+        println!("\n{}", self.html2text(&display));
         Ok(())
     }
 

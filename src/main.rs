@@ -109,6 +109,7 @@ fn run(args: &Args, client: AocClient) -> AocResult<()> {
         Some(Command::PrivateLeaderboard { leaderboard_id }) => {
             client.show_private_leaderboard(*leaderboard_id)
         }
-        _ => client.show_puzzle(),
+        Some(Command::Read { part }) => client.show_puzzle(part.as_deref()),
+        _ => client.show_puzzle(None),
     }
 }

@@ -89,7 +89,11 @@ pub enum Command {
 
     /// Read puzzle statement (the default command)
     #[command(visible_alias = "r")]
-    Read,
+    Read {
+        /// Puzzle part
+        #[arg(long, value_parser = ["1", "2"])]
+        part: Option<String>,
+    },
 
     /// Submit puzzle answer
     #[command(visible_alias = "s")]
